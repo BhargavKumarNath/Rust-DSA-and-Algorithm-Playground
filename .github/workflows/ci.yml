@@ -32,14 +32,15 @@ jobs:
       # 5. Cargo check for Rust crates
       - run: cargo check --workspace
 
-      # 6. Build Python bindings
+      # 6. Build Python bindings and install the wheel
       - run: |
           cd bindings
-          maturin build --release
+          # Build wheel to target/wheels
+          maturin build --release --out target/wheels
+          # Install the generated wheel
           pip install target/wheels/*.whl
 
       # 7. Run Python tests
       - run: |
           cd bindings/python
-          pip install -e .
           pytest tests/
