@@ -1,0 +1,44 @@
+name: Rust + Python CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - uses: actions/checkout@v3
+
+      # 2. Set up Rust
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+
+      # 3. Set up Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      # 4. Install maturin
+      - run: pip install maturin
+
+      # 5. Cargo check for Rust crates
+      - run: cargo check --workspace
+
+      # 6. Build Python bindings
+      - run: |
+          cd bindings
+          maturin develop
+
+      # 7. Run Python tests
+      - run: |
+          cd bindings/python
+          pip install -e .
+          pytest tests/
