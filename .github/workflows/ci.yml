@@ -35,12 +35,11 @@ jobs:
       # 6. Build Python bindings and install the wheel
       - run: |
           cd bindings
-          # Build wheel to target/wheels
           maturin build --release --out target/wheels
-          # Install the generated wheel
           pip install target/wheels/*.whl
 
       # 7. Run Python tests
       - run: |
           cd bindings/python
+          pip install pytest
           pytest tests/
