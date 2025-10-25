@@ -1,6 +1,3 @@
 [workspace]
-members = [
-    "rust",
-    "bindings",
-]
+members = ["rust", "bindings"]
 resolver = "2"

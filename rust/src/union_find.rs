@@ -55,12 +55,17 @@ impl UnionFind {
         self.count -= 1;
         true
     }
+    
     pub fn connected(&mut self, p: usize, q: usize) -> bool {
         self.find(p) == self.find(q)
     }
 
     pub fn count(&self) -> usize {
         self.count
+    }
+
+    pub fn get_parents(&self) -> Vec<usize> {
+        self.parent.clone()
     }
 }
 

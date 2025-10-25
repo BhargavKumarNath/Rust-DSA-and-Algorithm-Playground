@@ -47,6 +47,11 @@ impl PyUnionFind {
         self.uf.count()
     }
 
+    #[getter]
+    fn parents(&self) -> PyResult<Vec<usize>> {
+        Ok(self.uf.get_parents())
+    }
+
 }
 
 #[pyclass(name = "FenwickTree")]
