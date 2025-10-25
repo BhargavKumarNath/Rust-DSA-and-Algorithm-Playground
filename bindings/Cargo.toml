@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-name="advanced_ds_playground"
+name="advanced_ds_playground_bindings"
 crate-type = ["cdylib"]
 
 [dependencies]
