@@ -1,5 +1,5 @@
 import pytest
-from advanced_ds_playground import Treap
+from advanced_ds_playground_bindings import Treap
 
 def test_insert_contains_len_inorder():
     print("\n[TEST] Treap: Insert, contains, len, inorder")

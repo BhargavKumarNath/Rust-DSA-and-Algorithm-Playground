@@ -1,5 +1,5 @@
 import pytest
-from advanced_ds_playground import SparseTable
+from advanced_ds_playground_bindings import SparseTable
 
 def test_sparse_table_min_basic():
     print("\n[TEST] SparseTable: Basic min queries")

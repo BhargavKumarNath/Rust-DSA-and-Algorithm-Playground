@@ -1,5 +1,5 @@
 import pytest
-from advanced_ds_playground import FenwickTree
+from advanced_ds_playground_bindings import FenwickTree
 
 def test_init_from_size():
     print("\n[TEST] FenwickTree: Initialization from size")

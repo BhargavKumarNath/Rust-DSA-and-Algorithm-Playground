@@ -189,7 +189,7 @@ impl PyTreap {
 // --- END: Added Treap Binding ---
 
 #[pymodule]
-fn advanced_ds_playground_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
+fn advanced_ds_playground_bindings(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add existing classes
     m.add_class::<PyUnionFind>()?;
     m.add_class::<PyFenwickTree>()?;

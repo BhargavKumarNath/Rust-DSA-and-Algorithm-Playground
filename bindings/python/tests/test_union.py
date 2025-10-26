@@ -1,5 +1,5 @@
 import pytest
-from advanced_ds_playground import UnionFind
+from advanced_ds_playground_bindings import UnionFind
 
 def test_initialization():
     print("\n[TEST] Initialization")

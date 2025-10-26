@@ -1,5 +1,5 @@
 import pytest
-from advanced_ds_playground import find_all, prefix_function
+from advanced_ds_playground_bindings import find_all, prefix_function
 
 def test_prefix_function_basic():
     print("\n[TEST] KMP: Prefix function basic")
