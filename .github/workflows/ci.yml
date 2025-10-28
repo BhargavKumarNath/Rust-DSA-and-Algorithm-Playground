@@ -40,6 +40,7 @@ jobs:
 
       # 7. Run Python tests
       - run: |
-          cd bindings/python
+          cd python
           pip install pytest
           pytest tests/
+
