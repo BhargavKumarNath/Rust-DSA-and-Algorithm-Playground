@@ -1,0 +1,24 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+# This tells maturin where the Rust crate actually lives
+manifest-path = "bindings/Cargo.toml"
+
+[project]
+name = "advanced-ds-playground"
+version = "0.1.0"
+description = "A Rust-Python interactive data structure playground"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "typer[all]",
+    "rich",
+]
+
+[project.scripts]
+dsplayground = "dsplayground.cli:app"

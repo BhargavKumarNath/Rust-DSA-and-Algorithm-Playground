@@ -12,4 +12,4 @@ pyo3 = { version = "0.21.2", features = ["extension-module"] }
 rust = { path = "../rust" } 
 
 [package.metadata.maturin]
-python-source = "python"
+python-source = "../python"
