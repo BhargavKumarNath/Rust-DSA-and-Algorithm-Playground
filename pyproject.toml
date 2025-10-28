@@ -12,11 +12,11 @@ description = "A Rust-Python interactive data structure playground"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
-    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3"
 ]
 dependencies = [
     "typer[all]",
-    "rich",
+    "rich"
 ]
 
 [project.scripts]
@@ -27,11 +27,5 @@ where = ["python"]
 
 [tool.setuptools-rust]
 rust_extensions = [
-    { 
-        path = "bindings/Cargo.toml",
-        name = "advanced_ds_playground_bindings",
-        binding = "PyO3",
-        module_name = "advanced_ds_playground_bindings",
-        debug = false
-    }
+    { path = "bindings/Cargo.toml", name = "advanced_ds_playground_bindings", binding = "PyO3", module_name = "advanced_ds_playground_bindings", debug = false }
 ]
