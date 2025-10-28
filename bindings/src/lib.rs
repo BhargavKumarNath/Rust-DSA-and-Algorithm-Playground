@@ -60,6 +60,7 @@ struct PyFenwickTree {
 }
 
 #[allow(non_local_definitions)]
+
 #[pymethods]
 impl PyFenwickTree {
     #[new]
@@ -99,6 +100,12 @@ impl PyFenwickTree {
     pub fn __len__(&self) -> usize {
         self.ft.len()
     }
+
+    #[getter]
+    fn internal_tree(&self) -> PyResult<Vec<i64>> {
+        Ok(self.ft.get_internal_tree())
+    }
+    
 }
 
 // --- START: Added KMP Bindings ---

@@ -11,6 +11,8 @@ from typing_extensions import Annotated
 from collections import defaultdict
 
 from advanced_ds_playground_bindings import UnionFind
+from advanced_ds_playground_bindings import FenwickTree
+
 
 app = typer.Typer(help="An Interactive Playground for Advanced Data Structures.")
 console = Console()
@@ -273,3 +275,123 @@ def unionfind(
             border_style="red",
             box=box.DOUBLE
         ))
+
+# -------------------------------------------
+# FENWICK TREE
+# -------------------------------------------
+def _show_fenwick_tree_state(ft: FenwickTree, last_op: str = " "):
+    """Renders the state of the FenwickTree object with clear explanations"""
+    
+    # Header with operation info
+    header_table = Table(title="FenwickTree State", show_header=True, header_style="bold magenta", box=box.ROUNDED)
+    header_table.add_column("", style="bold cyan")
+    header_table.add_column("", style="yellow")
+    header_table.add_row("Last Operation", f"{last_op}")
+    header_table.add_row("Size (n)", f"{len(ft)}")
+    console.print(header_table)
+    
+    n = len(ft)
+    
+    # Show actual reconstructed values
+    values_table = Table(
+        title="[bold green]Array Values (0-indexed)[/bold green]",
+        show_header=True,
+        header_style="bold green",
+        box=box.ROUNDED,
+        border_style="green"
+    )
+    values_table.add_column("Index", style="dim", justify="center")
+    values_table.add_column("Value", style="bold white", justify="center")
+    values_table.add_column("Prefix Sum [0..i]", style="cyan", justify="center")
+    
+    # Calculate actual values from prefix sums
+    prev_sum = 0
+    for i in range(n):
+        prefix_sum = ft.query(i)
+        actual_value = prefix_sum - prev_sum
+        values_table.add_row(str(i), str(actual_value), str(prefix_sum))
+        prev_sum = prefix_sum
+    
+    console.print(values_table)
+    
+    internal_tree = ft.internal_tree
+    tree_table = Table(
+        title="[bold blue]Internal Tree Structure (1-indexed)[/bold blue]",
+        show_header=True,
+        header_style="bold blue",
+        box=box.ROUNDED,
+        border_style="blue"
+    )
+    tree_table.add_column("Index", style="dim", justify="center")
+    tree_table.add_column("Internal Value", style="yellow", justify="center")
+    tree_table.add_column("Range Covered", style="dim", justify="center")
+    
+    for i in range(1, len(internal_tree)):
+        # Calculate the range this index is responsible for
+        # In Fenwick tree, index i covers range [i - LSB(i) + 1, i]
+        lsb = i & -i
+        range_start = i - lsb + 1
+        range_str = f"[{range_start-1}..{i-1}]" if range_start != i else f"[{i-1}]"
+        
+        tree_table.add_row(
+            str(i),
+            str(internal_tree[i]),
+            range_str
+        )
+    
+    console.print(tree_table)
+    console.print()
+    console.print("[dim] Tip: The 'Array Values' table shows the actual data.")
+    console.print("[dim] The 'Internal Tree' shows how Fenwick Tree stores it internally.[/dim]")
+    console.print("-" * console.width)
+
+@app.command()
+def fenwicktree(
+    init_values: Annotated[str, typer.Option(help='Initial values as a comma-separated string, e.g., "1,2,3,4".')] = "",
+    size: Annotated[int, typer.Option(help="Size of the tree if no initial values.")] = 10,
+    operations: Annotated[List[str], typer.Argument(help='A sequence of operations, e.g., "add 2 5"')] = None
+):
+    """
+    Visualizes the Fenwick Tree (Binary Indexed Tree).
+    
+    Operations:
+    - add idx delta
+    - query idx
+    - range_sum start end
+    """
+    try:
+        if init_values:
+            values = [int(v.strip()) for v in init_values.split(',')]
+            ft = FenwickTree(values)
+            console.print(f"[bold]Initializing FenwickTree with values: {values}[/bold]")
+            _show_fenwick_tree_state(ft, f"init({values})")
+        else:
+            ft = FenwickTree(size)
+            console.print(f"[bold]Initializing FenwickTree with size {size}[/bold]")
+            _show_fenwick_tree_state(ft, f"init(size={size})")
+
+        if not operations:
+            return
+
+        for op in operations:
+            parts = op.lower().split()
+            cmd = parts[0]
+            args = [int(p) for p in parts[1:]]
+
+            if cmd == "add" and len(args) == 2:
+                idx, delta = args
+                ft.add(idx, delta)
+                _show_fenwick_tree_state(ft, f"add({idx}, {delta})")
+            elif cmd == "query" and len(args) == 1:
+                idx = args[0]
+                result = ft.query(idx)
+                console.print(f"Performed: [bold]query({idx})[/bold] -> Prefix Sum: [bold green]{result}[/bold green]")
+            elif cmd == "range_sum" and len(args) == 2:
+                start, end = args
+                result = ft.range_sum(start, end)
+                console.print(f"Performed: [bold]range_sum({start}, {end})[/bold] -> Sum: [bold green]{result}[/bold green]")
+            else:
+                console.print(f"[bold red]Error: Unknown or invalid operation '{op}'[/bold red]")
+
+    except (IndexError, ValueError) as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")

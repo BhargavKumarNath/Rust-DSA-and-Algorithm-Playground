@@ -65,6 +65,11 @@ impl FenwickTree{
     pub fn len(&self) -> usize {
         self.tree.len() - 1
     }
+
+    pub fn get_internal_tree(&self) -> Vec<i64> {
+        self.tree.clone()
+    }
+
 }
 
 #[cfg(test)]
