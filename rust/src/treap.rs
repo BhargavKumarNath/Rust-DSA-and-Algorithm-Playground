@@ -1,4 +1,3 @@
-// rust/src/treap.rs
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SPLITMIX64_SEED: AtomicU64 = AtomicU64::new(0x9E3779B97F4A7C15);
@@ -19,20 +18,47 @@ struct Node {
     left: Option<Box<Node>>,
     right: Option<Box<Node>>,
     size: usize,
-    count: usize, // count of equal keys
+    count: usize, 
+}
+
+/// A public struct to safely expose node information for FFI.
+#[derive(Debug, Clone)]
+pub struct NodeInfo {
+    pub key: i64,
+    pub priority: u64,
+    pub count: usize,
+    pub size: usize,
+    pub left: Option<Box<NodeInfo>>,
+    pub right: Option<Box<NodeInfo>>,
 }
 
 impl Node {
     fn new(key: i64) -> Self {
-        let mut s = SPLITMIX64_SEED.fetch_add(0x9E3779B97F4A7C15, Ordering::Relaxed);
-        let prio = splitmix64(&mut s);
-        Node {
+        // Get the current seed and generate a new priority
+        let mut seed = SPLITMIX64_SEED.load(Ordering::Relaxed);
+        let priority = splitmix64(&mut seed);
+        // Store the updated seed
+        SPLITMIX64_SEED.store(seed, Ordering::Relaxed);
+
+        Self {
             key,
-            priority: prio,
+            priority, // The new random priority
             left: None,
             right: None,
-            size: 1,
-            count: 1,
+            size: 1,   // It's a single node
+            count: 1,  // First occurrence of this key
+        }
+    }
+
+    /// Recursively builds a public NodeInfo struct from the internal Node.
+    fn to_node_info(&self) -> NodeInfo {
+        NodeInfo {
+            key: self.key,
+            priority: self.priority,
+            count: self.count,
+            size: self.size,
+            left: self.left.as_ref().map(|n| Box::new(n.to_node_info())),
+            right: self.right.as_ref().map(|n| Box::new(n.to_node_info())),
         }
     }
 
@@ -82,7 +108,7 @@ impl Treap {
 
     fn insert_rec(node: Option<Box<Node>>, key: i64) -> Option<Box<Node>> {
         match node {
-            None => Some(Box::new(Node::new(key))),
+            None => Some(Box::new(Node::new(key))), 
             Some(mut boxed) => {
                 if key == boxed.key {
                     boxed.count += 1;
@@ -160,7 +186,6 @@ impl Treap {
     }
 
     fn rotate_right(mut y: Box<Node>) -> Box<Node> {
-        // y.left is Some
         let mut x = y.left.take().expect("rotate_right called with no left child");
         y.left = x.right.take();
         y.recalc();
@@ -192,6 +217,10 @@ impl Treap {
             }
             Self::inorder_rec(&n.right, out);
         }
+    }
+
+    pub fn get_structure(&self) -> Option<NodeInfo> {
+        self.root.as_ref().map(|n| n.to_node_info())
     }
 }
 

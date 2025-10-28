@@ -3,6 +3,7 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::exceptions::PyValueError;
 use rust::union_find::UnionFind as RustUnionFind;
 use rust::fenwick_tree::FenwickTree as RustFenwickTree;
+use rust::treap::NodeInfo as RustNodeInfo;
 use rust::{kmp, sparse_table::SparseTable, treap::Treap};
 
 #[pyclass(name="UnionFind")]
@@ -146,6 +147,34 @@ impl PySparseTable {
 // --- END: Added Sparse Table Binding ---
 
 // --- START: Added Treap Binding ---
+#[pyclass(name="TreapNode")]
+struct PyTreapNode {
+    #[pyo3(get)]
+    key: i64,
+    #[pyo3(get)]
+    priority: u64,
+    #[pyo3(get)]
+    count: usize,
+    #[pyo3(get)]
+    size: usize,
+    #[pyo3(get)]
+    left: Option<Py<PyTreapNode>>,
+    #[pyo3(get)]
+    right: Option<Py<PyTreapNode>>,
+}
+
+/// Recursively converts the Rust-native NodeInfo into a Python-heap-allocated PyTreapNode.
+fn convert_node<'py>(py: Python<'py>, node: RustNodeInfo) -> PyResult<Py<PyTreapNode>> {
+    Py::new(py, PyTreapNode {
+        key: node.key,
+        priority: node.priority,
+        count: node.count,
+        size: node.size,
+        left: node.left.map(|n| convert_node(py, *n)).transpose()?,
+        right: node.right.map(|n| convert_node(py, *n)).transpose()?,
+    })
+}
+
 #[pyclass(name = "Treap")]
 struct PyTreap {
     t: Treap,
@@ -192,6 +221,15 @@ impl PyTreap {
     fn __contains__(&self, key: i64) -> bool {
         self.t.contains(key) 
     }
+
+    #[getter]
+    fn root<'py>(&self, py: Python<'py>) -> PyResult<Option<Py<PyTreapNode>>> {
+        match self.t.get_structure() {
+            Some(root_info) => Ok(Some(convert_node(py, root_info)?)),
+            None => Ok(None),
+        }
+    }
+
 }
 // --- END: Added Treap Binding ---
 

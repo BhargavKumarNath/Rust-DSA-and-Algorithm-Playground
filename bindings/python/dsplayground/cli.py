@@ -10,9 +10,14 @@ from typing import List
 from typing_extensions import Annotated
 from collections import defaultdict
 
-from advanced_ds_playground_bindings import UnionFind
-from advanced_ds_playground_bindings import FenwickTree
-
+from advanced_ds_playground_bindings import (
+    UnionFind,
+    FenwickTree,
+    prefix_function,  
+    find_all,         
+    SparseTable,      
+    Treap            
+)
 
 app = typer.Typer(help="An Interactive Playground for Advanced Data Structures.")
 console = Console()
@@ -395,3 +400,291 @@ def fenwicktree(
 
     except (IndexError, ValueError) as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
+
+# -------------------------------------------
+# KMP (Knuth-Morris-Pratt)
+# -------------------------------------------
+
+@app.command()
+def kmp_prefix(
+    pattern: Annotated[str, typer.Argument(help="The pattern string to analyze.")]
+):
+    """
+    Calculates and displays the KMP prefix function (pi table).
+    """
+    if not pattern:
+        console.print("[bold red]Error: Pattern cannot be empty.[/bold red]")
+        raise typer.Exit(code=1)
+        
+    pi = prefix_function(pattern)
+    
+    table = Table(title=f"KMP Prefix Function for: [yellow]'{pattern}'[/yellow]", box=box.ROUNDED)
+    table.add_column("Index (i)", style="dim", justify="center")
+    table.add_column("Pattern (P[i])", style="bold white", justify="center")
+    table.add_column("Pi Table (pi[i])", style="bold cyan", justify="center")
+    table.add_column("Matching Prefix/Suffix", style="green") 
+    
+    for i, (char, val) in enumerate(zip(pattern, pi)):
+        match_str = "[dim]-[/dim]"
+        if val > 0:
+            
+            match_str = f"[green]'{pattern[:val]}'[/green]"
+            
+        table.add_row(str(i), str(char), str(val), match_str) 
+        
+    console.print(table)
+    console.print("[dim] `pi[i]` = length of the longest proper prefix of `P[0..i]` that is also a suffix of `P[0..i]`.[/dim]")
+
+@app.command()
+def kmp_find(
+    text: Annotated[str, typer.Argument(help="The text string to search in.")],
+    pattern: Annotated[str, typer.Argument(help="The pattern string to search for.")]
+):
+    """
+    Finds all occurrences of a pattern in text using KMP.
+    """
+    if not pattern:
+        console.print("[bold red]Error: Pattern cannot be empty.[/bold red]")
+        raise typer.Exit(code=1)
+    if not text:
+        console.print("[bold red]Error: Text cannot be empty.[/bold red]")
+        raise typer.Exit(code=1)
+        
+    indices = find_all(text, pattern)
+    pi = prefix_function(pattern) 
+    
+    console.print(f"Searching for [yellow]'{pattern}'[/yellow] in [cyan]'{text}'[/cyan]")
+    
+    pi_table = Table(title=f"Pattern's Pi Table", box=box.MINIMAL, padding=(0, 1))
+    pi_table.add_column("Pattern", style="white")
+    pi_table.add_column("Pi Value", style="cyan")
+    for char, val in zip(pattern, pi):
+        pi_table.add_row(char, str(val))
+    console.print(Panel(
+        pi_table,
+        title="[dim]KMP Preprocessing[/dim]",
+        border_style="blue",
+        box=box.ROUNDED,
+        expand=False
+    ))
+    
+    if not indices:
+        console.print(Panel("[bold green]No occurrences found.[/bold green]", border_style="green", box=box.ROUNDED))
+        return
+        
+    console.print(Panel(
+        f"Found [bold green]{len(indices)}[/bold green] occurrence(s) at 0-based indices: [bold yellow]{indices}[/bold yellow]",
+        border_style="green",
+        box=box.ROUNDED
+    ))
+    
+    rich_text = Text(text)
+    for idx in indices:
+        rich_text.stylize("bold white on red", idx, idx + len(pattern))
+        
+    console.print("\n[bold]Visual representation:[/bold]")
+    console.print(rich_text) 
+    console.print()
+
+# -------------------------------------------
+# SPARSE TABLE
+# -------------------------------------------
+
+def _show_sparse_table_state(arr: List[int], last_op: str = ""):
+    """Renders the state of the SparseTable object."""
+    header_table = Table(title="SparseTable State (for Min)", show_header=True, header_style="bold magenta", box=box.ROUNDED)
+    header_table.add_column("", style="bold cyan")
+    header_table.add_column("", style="yellow")
+    if last_op:
+        header_table.add_row("Last Operation", f"{last_op}")
+    header_table.add_row("Size (n)", f"{len(arr)}")
+    console.print(header_table)
+    
+    arr_table = Table(
+        title="[bold green]Original Array (0-indexed)[/bold green]",
+        box=box.ROUNDED,
+        border_style="green"
+    )
+    arr_table.add_column("Index", style="dim", justify="center")
+    for i in range(len(arr)):
+        arr_table.add_column(str(i), style="bold white", justify="center")
+    
+    arr_table.add_row("Value", *[str(v) for v in arr])
+    console.print(arr_table)
+    console.print("[dim] Sparse Table is immutable. State shows the array it was built from.[/dim]")
+    console.print("-" * console.width)
+
+@app.command()
+def sparsetable(
+    init_values: Annotated[str, typer.Option(help='Initial values as a comma-separated string, e.g., "5,2,4,7,1,3".')],
+    operations: Annotated[List[str], typer.Argument(help='A sequence of query operations, e.g., "query 1 4"')] = None
+):
+    """
+    Visualizes the Sparse Table (for Range Minimum Query).
+    
+    Operations:
+    - query l r
+    """
+    if not init_values:
+        console.print("[bold red]Error: Initial values are required for Sparse Table.[/bold red]")
+        raise typer.Exit(code=1)
+        
+    try:
+        values = [int(v.strip()) for v in init_values.split(',')]
+        st = SparseTable(values)
+        console.print(f"[bold]Initializing SparseTable with values: {values}[/bold]")
+        _show_sparse_table_state(values, f"init({values})")
+        
+        if not operations:
+            return
+
+        for op in operations:
+            parts = op.lower().split()
+            cmd = parts[0]
+            args = [int(p) for p in parts[1:]]
+            
+            if cmd == "query" and len(args) == 2:
+                l, r = args
+                result = st.query(l, r)
+                if result is not None:
+                    console.print(f"Performed: [bold]query({l}, {r})[/bold] -> Min: [bold green]{result}[/bold green]")
+                else:
+                    console.print(f"Performed: [bold]query({l}, {r})[/bold] -> [red]Invalid range (l > r or out of bounds)[/red]")
+            else:
+                console.print(f"[bold red]Error: Unknown or invalid operation '{op}'[/bold red]")
+                
+    except (IndexError, ValueError) as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+    except Exception as e:
+        console.print(f"[bold red]Unexpected Error: {e}[/bold red]")
+
+# -------------------------------------------
+# TREAP
+# -------------------------------------------
+
+def _build_treap_viz(node) -> Tree:
+    """Recursively builds a rich.Tree from a PyTreapNode."""
+    if not node:
+        return Tree("[dim]empty[/dim]")
+    
+    color = COLORS[abs(node.key) % len(COLORS)]
+    
+    label = (
+        f"[{color} bold]Key: {node.key}[/{color} bold] "
+        f"[dim](Prio: ...{node.priority % 10000:04d})[/dim] "
+        f"[green](Count: {node.count}, Size: {node.size})[/green]"
+    )
+    tree = Tree(label, guide_style=color)
+    
+    if node.left or node.right:
+        left_child = _build_treap_viz(node.left) if node.left else Tree("L: [dim]null[/dim]")
+        right_child = _build_treap_viz(node.right) if node.right else Tree("R: [dim]null[/dim]")
+        tree.add(left_child)
+        tree.add(right_child)
+    else:
+        tree.guide_style = "dim" 
+    
+    return tree
+
+def _show_treap_state(t: Treap, last_op: str = "", op_result: str = ""):
+    """Renders the state of the Treap object."""
+    header_table = Table(title="Treap State", show_header=True, header_style="bold magenta", box=box.ROUNDED)
+    header_table.add_column("", style="bold cyan")
+    header_table.add_column("", style="yellow")
+    header_table.add_row("Last Operation", f"{last_op}")
+    if op_result:
+        header_table.add_row("Result", op_result)
+    header_table.add_row("Size (len)", f"{len(t)}")
+    console.print(header_table)
+    
+    root_node = t.root
+    if root_node:
+        viz_tree = _build_treap_viz(root_node)
+        console.print(Panel(
+            viz_tree,
+            title="[bold blue]Treap Structure (BST by Key, Heap by Priority)[/bold blue]",
+            border_style="blue",
+            box=box.ROUNDED
+        ))
+    else:
+        console.print(Panel(
+            "[dim]Treap is empty[/dim]",
+            title="[bold blue]Treap Structure[/bold blue]",
+            border_style="blue",
+            box=box.ROUNDED
+        ))
+
+    contents = t.inorder_vec()
+    
+    content_table = Table(
+        title="[bold green]Current Contents (In-Order)[/bold green]",
+        box=box.ROUNDED,
+        border_style="green"
+    )
+    content_table.add_column("Values", style="bold white")
+    
+    if not contents:
+        content_table.add_row("[dim](empty)[/dim]")
+    else:
+        content_table.add_row(f"{contents}")
+    
+    console.print(content_table)
+    console.print("-" * console.width) 
+
+@app.command()
+def treap(
+    operations: Annotated[List[str], typer.Argument(help='A sequence of operations, e.g., "insert 5" "remove 3"')] = None
+):
+    """
+    Visualizes the Treap (Randomized BST).
+    
+    Operations:
+    - insert key
+    - remove key
+    - contains key
+    """
+    console.print()
+    console.print(Panel.fit(
+        f"[bold magenta]Treap (Randomized BST)[/bold magenta]\n"
+        f"[dim]Initializing new empty Treap[/dim]",
+        border_style="magenta",
+        box=box.DOUBLE_EDGE
+    ))
+
+    try:
+        t = Treap()
+        _show_treap_state(t, "init()")
+        
+        if not operations:
+            return
+
+        for op in operations:
+            parts = op.lower().split()
+            if not parts:
+                continue
+            
+            cmd = parts[0]
+            args = [int(p) for p in parts[1:]]
+
+            if cmd == "insert" and len(args) == 1:
+                key = args[0]
+                t.insert(key)
+                _show_treap_state(t, f"insert({key})")
+            elif cmd == "remove" and len(args) == 1:
+                key = args[0]
+                t.remove(key)
+                _show_treap_state(t, f"remove({key})")
+            elif cmd == "contains" and len(args) == 1:
+                key = args[0]
+                result = key in t 
+                is_found = result
+                op_str = f"contains({key})"
+                result_str = f"[{'green' if is_found else 'red'}] {'✓ Found' if is_found else '✗ Not Found'}[/{'green' if is_found else 'red'}]"
+                _show_treap_state(t, op_str, result_str) 
+            else:
+                console.print(f"[bold red]Error: Unknown or invalid operation '{op}'[/bold red]")
+                
+    except (IndexError, ValueError) as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+    except Exception as e:
+        console.print(f"[bold red]Unexpected Error: {e}[/bold red]")
